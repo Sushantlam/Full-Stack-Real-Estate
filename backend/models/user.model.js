@@ -3,7 +3,6 @@ const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 
-
 const userSchema = new mongoose.Schema({
   userName: {
     type: String,
@@ -14,7 +13,6 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-   
   },
   avatar: {
     type: String,
@@ -28,14 +26,14 @@ const userSchema = new mongoose.Schema({
   otp: {
     type: Number,
   },
-  accountVerificationToken:{
-    type:String,
+  accountVerificationToken: {
+    type: String,
   },
   emailTokenExpires: {
     type: Number,
   },
-  resetPasswordVerificationToken:{
-    type:String,
+  resetPasswordVerificationToken: {
+    type: String,
   },
   resetPasswordTokenExpires: {
     type: Number,
@@ -54,29 +52,70 @@ userSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
-userSchema.methods.getEmailVerificationCode = function(){
-  const code = Math.floor(Math.random()*900000)+100000
-  this.otp = code
-  console.log("code", code);
-  
-  return code 
-}
+// ##########################################################------ Method that is used to generate otp---------------------------------#############################
 
-userSchema.methods.getEmailVerificationToken = function() {
+userSchema.methods.getEmailVerificationCode = function () {
+  const code = Math.floor(Math.random() * 900000) + 100000;
+  this.otp = code;
+  console.log("code", code);
+
+  return code;
+};
+
+// ##########################################################------ Method that is used to generate email verification token with expiry---------------------------------#############################
+
+userSchema.methods.getEmailVerificationToken = function () {
   const token = crypto.randomBytes(32).toString("hex");
-  this.accountVerificationToken = crypto.createHash("sha256").update(token).digest("hex");
+  this.accountVerificationToken = crypto
+    .createHash("sha256")
+    .update(token)
+    .digest("hex");
   console.log("this.accountVerificationToken", this.accountVerificationToken);
   this.emailTokenExpires = Date.now() + 2 * 60 * 1000;
   return token;
 };
 
-userSchema.methods.resetPasswordToken = function() {
+// ##########################################################------ Method that is used to generate reset token with expiry---------------------------------#############################
+
+userSchema.methods.resetPasswordToken = function () {
   const token = crypto.randomBytes(32).toString("hex");
-  this.resetPasswordVerificationToken = crypto.createHash("sha256").update(token).digest("hex");
+  this.resetPasswordVerificationToken = crypto
+    .createHash("sha256")
+    .update(token)
+    .digest("hex");
   this.resetPasswordTokenExpires = Date.now() + 2 * 60 * 1000;
   return token;
 };
 
+// ##########################################################------ Method that is used to generate access token---------------------------------#############################
+
+userSchema.methods.generateAccessToken = function () {
+  return jwt.sign(
+    {
+      _id: this._id,
+      email: this._id,
+      userName: this.userName,
+    },
+    process.env.ACCESS_TOKEN_SECRET,
+    {
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+    }
+  );
+};
+
+// ##########################################################------ Method that is used to generate refresh token---------------------------------#############################
+
+userSchema.methods.generateRefreshToken = function () {
+  return jwt.sign(
+    {
+      _id: this._id,
+    },
+    process.env.REFRESH_TOKEN_SECRET,
+    {
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
+    }
+  );
+};
 
 const User = mongoose.model("User", userSchema);
 module.exports = User;
