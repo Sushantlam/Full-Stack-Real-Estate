@@ -1,0 +1,1 @@
+module.exports = ORIGIN = "http://localhost:5173"
